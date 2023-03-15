@@ -53,3 +53,49 @@ class TestPoetryParser(TestCase):
         self.assertEqual(component.purl.to_string(), component.bom_ref.value)
         self.assertEqual('0.10.2', component.version)
         self.assertEqual(2, len(component.external_references), f'{component.external_references}')
+
+    @data('poetry-dev-dep.txt')
+    def test_ignore_dev_dep(self, lock_file_name: str) -> None:
+        poetry_lock_filename = os.path.join(os.path.dirname(__file__), 'fixtures', lock_file_name)
+
+        # without omit
+        parser = PoetryFileParser(poetry_lock_filename=poetry_lock_filename, use_purl_bom_ref=True)
+        self.assertEqual(2, parser.component_count())
+        component = next(filter(lambda c: c.name == 'toml', parser.get_components()), None)
+        self.assertIsNotNone(component)
+        self.assertEqual('toml', component.name)
+        self.assertEqual(component.purl.to_string(), component.bom_ref.value)
+        self.assertEqual('0.10.2', component.version)
+        self.assertEqual(2, len(component.external_references), f'{component.external_references}')
+        self.assertEqual(1, len(component.properties))
+        prop = next(iter(component.properties))
+        self.assertEqual('cdx:poetry:component:category', prop.name)
+        self.assertEqual('main', prop.value)
+
+        component = next(filter(lambda c: c.name == 'ddt', parser.get_components()), None)
+        self.assertIsNotNone(component)
+        self.assertEqual('ddt', component.name)
+        self.assertEqual(component.purl.to_string(), component.bom_ref.value)
+        self.assertEqual('1.6.0', component.version)
+        self.assertEqual(2, len(component.external_references), f'{component.external_references}')
+        self.assertEqual(1, len(component.properties))
+        prop = next(iter(component.properties))
+        self.assertEqual('cdx:poetry:component:category', prop.name)
+        self.assertEqual('dev', prop.value)
+
+        # with omit
+        parser = PoetryFileParser(
+            poetry_lock_filename=poetry_lock_filename,
+            use_purl_bom_ref=True,
+            omit_category={'dev'})
+        self.assertEqual(1, parser.component_count())
+        component = next(filter(lambda c: c.name == 'toml', parser.get_components()), None)
+        self.assertIsNotNone(component)
+        self.assertEqual('toml', component.name)
+        self.assertEqual(component.purl.to_string(), component.bom_ref.value)
+        self.assertEqual('0.10.2', component.version)
+        self.assertEqual(2, len(component.external_references), f'{component.external_references}')
+        self.assertEqual(1, len(component.properties))
+        prop = next(iter(component.properties))
+        self.assertEqual('cdx:poetry:component:category', prop.name)
+        self.assertEqual('main', prop.value)

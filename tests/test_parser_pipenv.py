@@ -71,3 +71,40 @@ class TestPipEnvParser(TestCase):
         self.assertEqual('0.10.2', c_toml.version)
         self.assertEqual(2, len(c_toml.external_references), f'{c_toml.external_references}')
         self.assertEqual(1, len(c_toml.external_references.pop().hashes))
+
+    def test_simple_ignore_dev_dep(self) -> None:
+        tests_pipfile_lock = os.path.join(os.path.dirname(__file__), 'fixtures/pipfile-lock-dev-dep.txt')
+
+        parser = PipEnvFileParser(
+            pipenv_lock_filename=tests_pipfile_lock,
+            use_purl_bom_ref=True,
+            omit_category={})
+        self.assertEqual(2, parser.component_count())
+        c_toml = next(filter(lambda c: c.name == 'toml', parser.get_components()), None)
+        self.assertIsNotNone(c_toml)
+        self.assertEqual('toml', c_toml.name)
+        self.assertEqual(c_toml.purl.to_string(), c_toml.bom_ref.value)
+        self.assertEqual('0.10.2', c_toml.version)
+        self.assertEqual(2, len(c_toml.external_references), f'{c_toml.external_references}')
+        self.assertEqual(1, len(c_toml.external_references.pop().hashes))
+
+        c_flake8 = next(filter(lambda c: c.name == 'flake8', parser.get_components()), None)
+        self.assertIsNotNone(c_flake8)
+        self.assertEqual('flake8', c_flake8.name)
+        self.assertEqual(c_flake8.purl.to_string(), c_flake8.bom_ref.value)
+        self.assertEqual('3.7.9', c_flake8.version)
+        self.assertEqual(2, len(c_flake8.external_references), f'{c_flake8.external_references}')
+        self.assertEqual(1, len(c_flake8.external_references.pop().hashes))
+
+        parser = PipEnvFileParser(
+            pipenv_lock_filename=tests_pipfile_lock,
+            use_purl_bom_ref=True,
+            omit_category={'dev'})
+        self.assertEqual(1, parser.component_count())
+        c_toml = next(filter(lambda c: c.name == 'toml', parser.get_components()), None)
+        self.assertIsNotNone(c_toml)
+        self.assertEqual('toml', c_toml.name)
+        self.assertEqual(c_toml.purl.to_string(), c_toml.bom_ref.value)
+        self.assertEqual('0.10.2', c_toml.version)
+        self.assertEqual(2, len(c_toml.external_references), f'{c_toml.external_references}')
+        self.assertEqual(1, len(c_toml.external_references.pop().hashes))
